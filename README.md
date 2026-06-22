@@ -16,19 +16,105 @@ via the shell or by importing it.
 
 ## Install
 
+### 1. The Python package
+
 ```bash
-pip install .            # base (stdlib only)
-pip install .[rich]      # + numpy for spectral features (key/tempo/mfcc/chroma)
+pip install git+https://github.com/tigrohvost/music-hearing.git          # base (stdlib only)
+pip install "music-hearing[rich] @ git+https://github.com/tigrohvost/music-hearing.git"   # + numpy spectral
 ```
 
-### Runtime prerequisites (not Python packages)
+Or from a clone:
 
-| Tool   | Needed for | Notes |
-|--------|------------|-------|
-| ffmpeg | decoding any non-WAV audio | required |
-| yt-dlp | fetching from a URL/search | required for `profile_music` |
-| deno   | YouTube signature challenge | a JS runtime must be on PATH, else YouTube yields "Requested format is not available" |
-| cookies| YouTube auth | a logged-in `cookies.txt`; pass with `--cookies` |
+```bash
+git clone https://github.com/tigrohvost/music-hearing.git
+cd music-hearing
+pip install .            # base
+pip install .[rich]      # + numpy for key/tempo/mfcc/chroma
+```
+
+Python 3.10+. The base package has **zero** Python dependencies; `[rich]` adds
+numpy. The CLI entry point `music-hearing` is installed on your PATH.
+
+### 2. Runtime prerequisites (system tools, not pip)
+
+| Tool   | Needed for | Without it |
+|--------|------------|-----------|
+| **ffmpeg** | decoding any non-WAV audio | `ffmpeg is required to profile non-WAV audio` |
+| **yt-dlp** | fetching from a URL/search | `yt-dlp is required for music hearing` |
+| **deno** (or another JS runtime) | YouTube's signature challenge | YouTube returns `Requested format is not available` |
+| **cookies** | YouTube auth | YouTube returns `Sign in to confirm you're not a bot` |
+
+```bash
+# Debian/Ubuntu
+sudo apt install ffmpeg
+# yt-dlp — use a recent build (2025.06+); the distro one is often too old
+sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && sudo chmod +x /usr/local/bin/yt-dlp
+# deno — a JS runtime yt-dlp uses to solve YouTube's challenge
+curl -fsSL https://deno.land/install.sh | sh        # puts deno in ~/.deno/bin
+```
+
+> **deno must be on the PATH that actually runs yt-dlp.** Some agents run tool
+> subprocesses with a sanitized `PATH` (e.g. just `/usr/bin`). If YouTube keeps
+> saying "Requested format is not available", symlink deno somewhere always on
+> PATH: `sudo ln -s "$(command -v deno)" /usr/bin/deno`. If GitHub's release CDN
+> is blocked, deno also publishes at `https://dl.deno.land/`.
+
+Point at a specific yt-dlp binary with `--ytdlp-bin` / `MH_YTDLP_BIN` if it
+isn't named `yt-dlp` on PATH.
+
+### 3. YouTube cookies
+
+YouTube bot-gates anonymous downloads (`Sign in to confirm you're not a bot`),
+so the tool needs a logged-in session exported as a Netscape `cookies.txt`. You
+only need this for YouTube; archive.org / direct URLs don't.
+
+**Use a throwaway Google account.** yt-dlp-style downloading can get an account
+rate-limited, flagged, or locked — don't use your main account.
+
+**Export the cookies** (browser extension, most reliable):
+
+1. Install a Netscape `cookies.txt` exporter, e.g. **"Get cookies.txt LOCALLY"**
+   (Chrome/Chromium/Firefox).
+2. Log the throwaway account into `https://www.youtube.com` in a normal window
+   and play a few seconds of any video so the full session cookies are set.
+3. Click the extension → **Export** → save `yt-cookies.txt`.
+
+> **Why not just copy the browser's cookie DB?** Incognito cookies live only in
+> the browser's memory (never written to the on-disk profile), and the on-disk
+> DB is keyring-encrypted — only an in-browser extension can export a usable
+> file. If you prefer incognito (yt-dlp's anti-rotation trick: log in, open a new
+> tab, close the original, export, then close the window), you must first enable
+> the extension for incognito in your browser's extension settings.
+
+**Give it to the tool** — flag or env (the flag wins):
+
+```bash
+music-hearing "<url-or-search>" --cookies /path/to/yt-cookies.txt
+# or
+export MH_COOKIES_FILE=/path/to/yt-cookies.txt
+music-hearing "<url-or-search>"
+```
+
+**Keep it safe.** Treat `yt-cookies.txt` like a password — it *is* a live login.
+
+```bash
+chmod 600 yt-cookies.txt          # owner-only
+```
+
+Store it outside any repo. This project's `.gitignore` already blocks
+`*cookies*.txt` and `secrets/`, but double-check before committing anywhere else.
+
+**Cookies expire / rotate** — every few weeks YouTube invalidates them and you'll
+see `Sign in to confirm you're not a bot` again. Just re-export and replace the
+file; no other change needed (a missing/expired file is ignored, so the
+archive.org path keeps working).
+
+### 4. Verify
+
+```bash
+music-hearing "https://archive.org/details/some-public-audio" --extra-hosts archive.org --summary   # no cookies needed
+music-hearing "Carbon Based Lifeforms Comsat" --cookies ./yt-cookies.txt --summary                  # YouTube path
+```
 
 ## Usage
 
