@@ -8,11 +8,12 @@ chroma) live in ``spectral`` and load only when requested.
 """
 from __future__ import annotations
 
+from .critic import critique, genre_hints
 from .dsp import AcousticProfile, acoustic_profile, load_mono_samples
 from .fetch import MusicHearingProfile, profile_music, resolve_source
 from .semantics import compare, describe
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "AcousticProfile",
@@ -23,5 +24,7 @@ __all__ = [
     "resolve_source",
     "describe",
     "compare",
+    "critique",
+    "genre_hints",
     "__version__",
 ]

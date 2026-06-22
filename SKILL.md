@@ -1,6 +1,6 @@
 ---
 name: music-hearing
-description: Use when you need to actually "hear" a piece of music — turn a YouTube/YouTube Music URL, an allowlisted host URL, or a search phrase into an acoustic profile (loudness, bands, BPM, spectral centroid) plus a plain-language description ("slow, dark, sub-heavy, dynamic"). Optional rich mode adds key, tempo, MFCC, and chroma.
+description: Use when you need to actually "hear" a piece of music — turn a YouTube/YouTube Music URL, an allowlisted host URL, or a search phrase into an acoustic profile (loudness, bands, BPM, spectral centroid) plus a plain-language description ("slow, dark, sub-heavy, dynamic"). Optional rich mode adds key, tempo, MFCC, and chroma. Optional critic mode adds metadata + an evidence brief and prompt so a model can name genre, similar artists, and an impression.
 ---
 
 # Music Hearing
@@ -26,11 +26,19 @@ Prefer the CLI (works for any agent via shell):
 music-hearing "Meg Bowles Organic Lullaby"
 music-hearing "https://www.youtube.com/watch?v=EfaFcjpuwkg" --seconds 30
 music-hearing "<url-or-search>" --rich          # + key/tempo/mfcc/chroma (needs the rich extra)
+music-hearing "<url-or-search>" --critic         # + metadata, genre hints, evidence brief, critic prompt
+music-hearing "<url-or-search>" --critic --llm   # also fill genre/similar-artists/impression via an LLM
 music-hearing "<url-or-search>" --summary       # just the one-line description
 ```
 
-Output is JSON: `profile` (numbers), `description` (`summary` + labels), and
-`rich` when `--rich` is set. With `--summary`, only the one-line summary prints.
+Output is JSON: `profile` (numbers), `description` (`summary` + labels),
+`rich` when `--rich` is set, and `critic` when `--critic` is set. With
+`--summary`, only the one-line summary prints.
+
+To name **genre / similar artists / impression**: run with `--critic`, then have
+your own model answer the `critic.prompt` (it embeds the evidence). Or use
+`--llm` (with `MH_LLM_BASE_URL` / `MH_LLM_API_KEY` / `MH_LLM_MODEL`) to get a
+`critic.verdict` directly.
 
 Or import it:
 

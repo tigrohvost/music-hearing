@@ -36,6 +36,33 @@ def test_cli_passes_flags_through_and_prints_json(capsys, monkeypatch):
     assert out["description"]["summary"].startswith("slow")
 
 
+def test_cli_critic_flag_enables_critic(monkeypatch):
+    seen = {}
+
+    def fake(source, seconds, **kwargs):
+        seen.update(kwargs)
+        return _fake_profile()
+
+    monkeypatch.setattr(cli, "profile_music", fake)
+    assert cli.main(["x", "--critic"]) == 0
+    assert seen["critic"] is True
+    assert seen["llm"] is False
+
+
+def test_cli_llm_implies_critic(monkeypatch):
+    seen = {}
+
+    def fake(source, seconds, **kwargs):
+        seen.update(kwargs)
+        return _fake_profile()
+
+    monkeypatch.setattr(cli, "profile_music", fake)
+    cli.main(["x", "--llm", "--llm-model", "gpt-x", "--llm-base-url", "http://e/v1"])
+    assert seen["critic"] is True
+    assert seen["llm"] is True
+    assert seen["llm_model"] == "gpt-x"
+
+
 def test_cli_summary_prints_one_line(capsys, monkeypatch):
     monkeypatch.setattr(cli, "profile_music", lambda *a, **k: _fake_profile())
     rc = cli.main(["whatever", "--summary"])

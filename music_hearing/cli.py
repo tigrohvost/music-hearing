@@ -27,6 +27,13 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--native-audio", action="store_true", help="skip the lossy mp3 re-encode")
     ap.add_argument("--rich", action="store_true",
                     help="add numpy spectral features: key/tempo/mfcc/chroma (needs the 'rich' extra)")
+    ap.add_argument("--critic", action="store_true",
+                    help="add a critic block: metadata + genre hints + evidence brief + prompt "
+                         "for naming genre / similar artists / impression")
+    ap.add_argument("--llm", action="store_true",
+                    help="with --critic, also call an OpenAI-compatible endpoint to fill the verdict")
+    ap.add_argument("--llm-base-url", help="OpenAI-compatible base URL (or MH_LLM_BASE_URL)")
+    ap.add_argument("--llm-model", help="model id for --llm (or MH_LLM_MODEL)")
     ap.add_argument("--summary", action="store_true", help="print only the one-line summary")
     return ap
 
@@ -43,6 +50,10 @@ def main(argv: list[str] | None = None) -> int:
             extractor_args=args.extractor_args,
             native_audio=(True if args.native_audio else None),
             rich=args.rich,
+            critic=(args.critic or args.llm),
+            llm=args.llm,
+            llm_base_url=args.llm_base_url,
+            llm_model=args.llm_model,
         )
     except Exception as exc:  # surface a readable one-line failure
         print(f"music-hearing: {type(exc).__name__}: {exc}", file=sys.stderr)

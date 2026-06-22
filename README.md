@@ -39,6 +39,8 @@ music-hearing "Meg Bowles Organic Lullaby"
 music-hearing "https://www.youtube.com/watch?v=EfaFcjpuwkg" --seconds 30 --cookies ./yt-cookies.txt
 music-hearing "https://archive.org/details/some-item" --extra-hosts archive.org
 music-hearing "<url-or-search>" --rich          # add key/tempo/mfcc/chroma
+music-hearing "<url-or-search>" --critic         # genre/similar-artist/impression brief + prompt
+music-hearing "<url-or-search>" --critic --llm   # fill the verdict via an LLM (see config)
 music-hearing "<url-or-search>" --summary       # one-line description only
 ```
 
@@ -58,6 +60,35 @@ p = describe(vars(acoustic_profile("track.mp3")))
 print(compare(vars(acoustic_profile("a.mp3")), vars(acoustic_profile("b.mp3"))))
 ```
 
+## Music-critic analysis (`--critic`)
+
+Genre, similar artists, and impressions are world-knowledge judgments — the
+acoustics alone can't honestly produce them. `--critic` therefore gives a model
+everything it needs to make that call:
+
+```jsonc
+"critic": {
+  "metadata":    { "title": ..., "artist": ..., "album": ..., "tags": [...] },  // from yt-dlp
+  "genre_hints": ["ambient", "downtempo"],   // coarse acoustic guesses (not a verdict)
+  "brief":       "Acoustics: slow, dark, sub-heavy ... Spectral: key ~D minor ... Metadata: artist ...",
+  "prompt":      "You are a seasoned music critic. ... Return JSON {genre, similar_artists, impression}"
+}
+```
+
+An **agent** reads `critic` and answers with its own model (no LLM dependency in
+the tool — stays agent-agnostic). For **standalone** use, `--llm` calls an
+OpenAI-compatible endpoint and adds `critic.verdict` =
+`{genre, similar_artists, impression}`:
+
+```bash
+export MH_LLM_BASE_URL=https://api.openai.com/v1
+export MH_LLM_API_KEY=sk-...
+music-hearing "Meg Bowles Organic Lullaby" --critic --llm --llm-model gpt-4o-mini
+```
+
+The critic prompt instructs the model to ground genre in the audio evidence,
+only name artists it's confident about, and avoid inventing.
+
 ## Configuration
 
 Every CLI flag has an `MH_*` environment fallback (the flag wins):
@@ -70,6 +101,9 @@ Every CLI flag has an `MH_*` environment fallback (the flag wins):
 | `--cookies-from-browser` | `MH_COOKIES_FROM_BROWSER` | read cookies from a local browser profile |
 | `--extractor-args` | `MH_EXTRACTOR_ARGS` | raw yt-dlp `--extractor-args` |
 | `--native-audio` | `MH_NATIVE_AUDIO` | skip the lossy mp3 re-encode |
+| `--llm-base-url` | `MH_LLM_BASE_URL` | OpenAI-compatible base URL for `--llm` |
+| `--llm-model` | `MH_LLM_MODEL` | model id for `--llm` |
+| (env only) | `MH_LLM_API_KEY` | bearer key for `--llm` (never a CLI flag) |
 
 A missing cookies file is ignored (the `--cookies` flag is dropped) so the
 non-YouTube path keeps working.
@@ -88,6 +122,8 @@ non-YouTube path keeps working.
 - `rich` (only with `--rich`) — true FFT centroid/rolloff/flatness/bandwidth,
   `key` (Krumhansl), `tempo` (octave-corrected, with confidence), `mfcc`,
   `chroma`, `lufs_approx`, `hpss`, `stereo`, `timeline`
+- `critic` (only with `--critic`) — `metadata`, `genre_hints`, `brief`,
+  `prompt`, and (with `--llm`) `verdict` = `{genre, similar_artists, impression}`
 
 ## How it works
 

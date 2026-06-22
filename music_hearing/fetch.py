@@ -85,6 +85,7 @@ class MusicHearingProfile:
     stale_warning: str = ""
     description: dict[str, Any] = field(default_factory=dict)
     rich: dict[str, Any] | None = None
+    critic: dict[str, Any] | None = None
 
 
 def _require_yt_dlp(override: str | None = None) -> str:
@@ -160,7 +161,8 @@ def resolve_source(source: str, extra_hosts: tuple[str, ...] = ()) -> tuple[str,
 def build_ytdlp_cmd(resolved: str, output: str, seconds: float, *, yt_dlp_bin: str,
                     cookies_from_browser: str | None = None, native_audio: bool = False,
                     extractor_args: str | None = None,
-                    cookies_file: str | None = None) -> list[str]:
+                    cookies_file: str | None = None,
+                    write_info_json: bool = False) -> list[str]:
     """Assemble the yt-dlp argv. Defaults reproduce the mp3 excerpt pipeline;
     ``native_audio`` skips the lossy re-encode, ``cookies_*`` / ``extractor_args``
     help pass YouTube's bot gate."""
@@ -182,6 +184,8 @@ def build_ytdlp_cmd(resolved: str, output: str, seconds: float, *, yt_dlp_bin: s
         cmd += ["--cookies", cookies_file]
     if extractor_args:
         cmd += ["--extractor-args", extractor_args]
+    if write_info_json:
+        cmd += ["--write-info-json"]
     cmd += ["--output", str(output), resolved]
     return cmd
 
@@ -190,7 +194,8 @@ def _download_excerpt(source: str, outdir: pathlib.Path, seconds: float, *,
                       ytdlp_bin: str | None = None, cookies_file: str | None = None,
                       cookies_from_browser: str | None = None,
                       native_audio: bool | None = None, extractor_args: str | None = None,
-                      extra_hosts: str | None = None) -> pathlib.Path:
+                      extra_hosts: str | None = None,
+                      write_info_json: bool = False) -> pathlib.Path:
     yt_dlp = _require_yt_dlp(ytdlp_bin)
     resolved, _ = resolve_source(source, _extra_hosts(extra_hosts))
     output = outdir / "source.%(ext)s"
@@ -200,13 +205,15 @@ def _download_excerpt(source: str, outdir: pathlib.Path, seconds: float, *,
         native_audio=(native_audio if native_audio is not None else _env_flag("MH_NATIVE_AUDIO")),
         extractor_args=(extractor_args or _env("MH_EXTRACTOR_ARGS") or None),
         cookies_file=_cookies_file_if_present(cookies_file),
+        write_info_json=write_info_json,
     )
     try:
         subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                        timeout=max(45, int(seconds) + 90))
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"yt-dlp failed (exit {e.returncode}): {_stderr_tail(e.stderr)}") from e
-    matches = sorted(outdir.glob("source.*"))
+    # exclude yt-dlp sidecars (.info.json) when picking the audio file
+    matches = [m for m in sorted(outdir.glob("source.*")) if not m.name.endswith(".info.json")]
     if not matches:
         raise RuntimeError("yt-dlp completed but produced no audio file")
     return matches[0]
@@ -216,10 +223,17 @@ def profile_music(source: str, seconds: float = DEFAULT_SECONDS, *,
                   cookies_file: str | None = None, ytdlp_bin: str | None = None,
                   extra_hosts: str | None = None, cookies_from_browser: str | None = None,
                   native_audio: bool | None = None, extractor_args: str | None = None,
-                  rich: bool = False) -> MusicHearingProfile:
+                  rich: bool = False, critic: bool = False, llm: bool = False,
+                  llm_base_url: str | None = None, llm_api_key: str | None = None,
+                  llm_model: str | None = None) -> MusicHearingProfile:
     """Fetch a bounded excerpt for ``source`` (URL or search phrase) and return
-    its acoustic profile + semantic description. ``rich=True`` also attaches the
-    numpy spectral profile (requires the ``rich`` extra)."""
+    its acoustic profile + semantic description.
+
+    ``rich=True`` attaches the numpy spectral profile (needs the ``rich`` extra).
+    ``critic=True`` attaches a ``critic`` block (metadata + genre hints + an
+    evidence brief + a ready prompt) so a model can name genre / similar artists
+    / impression. ``llm=True`` additionally calls an OpenAI-compatible endpoint
+    to fill in that verdict."""
     bounded_seconds = max(5.0, min(float(seconds), MAX_SECONDS))
     resolved, extractor = resolve_source(source, _extra_hosts(extra_hosts))
     version = ytdlp_version(ytdlp_bin)
@@ -230,17 +244,34 @@ def profile_music(source: str, seconds: float = DEFAULT_SECONDS, *,
             "this fetch. Update yt-dlp, pass --cookies / MH_COOKIES_FILE, or use an "
             "allowlisted host (e.g. archive.org)."
         )
+    critic_block = None
     with tempfile.TemporaryDirectory(prefix="music-hearing-") as td:
+        tdpath = pathlib.Path(td)
         audio = _download_excerpt(
-            source, pathlib.Path(td), bounded_seconds, ytdlp_bin=ytdlp_bin,
+            source, tdpath, bounded_seconds, ytdlp_bin=ytdlp_bin,
             cookies_file=cookies_file, cookies_from_browser=cookies_from_browser,
-            native_audio=native_audio, extractor_args=extractor_args, extra_hosts=extra_hosts)
+            native_audio=native_audio, extractor_args=extractor_args,
+            extra_hosts=extra_hosts, write_info_json=critic)
         profile = dsp.acoustic_profile(audio, max_seconds=bounded_seconds)
         profile_dict = asdict(profile)
+        description = semantics.describe(profile_dict)
         rich_data = None
-        if rich:
+        if rich or critic:
             from . import spectral
             rich_data = spectral.rich_profile(str(audio), max_seconds=bounded_seconds)
+        if critic:
+            from . import critic as _critic
+            from . import metadata as _metadata
+            info_files = sorted(tdpath.glob("*.info.json"))
+            meta = _metadata.read_info_json(info_files[0]) if info_files else _metadata.parse_info({})
+            critic_block = _critic.critique(description, rich=rich_data, metadata=meta)
+            if llm:
+                try:
+                    critic_block["verdict"] = _critic.llm_verdict(
+                        critic_block["prompt"], base_url=llm_base_url,
+                        api_key=llm_api_key, model=llm_model)
+                except Exception as exc:
+                    critic_block["verdict_error"] = f"{type(exc).__name__}: {exc}"
     return MusicHearingProfile(
         source=str(source),
         resolved_input=resolved,
@@ -249,6 +280,7 @@ def profile_music(source: str, seconds: float = DEFAULT_SECONDS, *,
         profile=profile_dict,
         yt_dlp_version=version,
         stale_warning=warning,
-        description=semantics.describe(profile_dict),
-        rich=rich_data,
+        description=description,
+        rich=(rich_data if rich else None),
+        critic=critic_block,
     )

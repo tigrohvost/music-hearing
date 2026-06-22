@@ -1,4 +1,6 @@
+import json
 import math
+import shutil
 import struct
 import wave
 from dataclasses import asdict
@@ -104,6 +106,13 @@ def test_build_cmd_forces_direct_no_proxy():
     # media fetch must bypass any inherited HTTPS_PROXY meant for app/LLM traffic
     cmd = fetch.build_ytdlp_cmd("u", "/tmp/o.%(ext)s", 30.0, yt_dlp_bin="yt-dlp")
     assert cmd[cmd.index("--proxy") + 1] == ""
+
+
+def test_build_cmd_write_info_json_opt_in():
+    assert "--write-info-json" not in fetch.build_ytdlp_cmd(
+        "u", "/tmp/o.%(ext)s", 30.0, yt_dlp_bin="yt-dlp")
+    assert "--write-info-json" in fetch.build_ytdlp_cmd(
+        "u", "/tmp/o.%(ext)s", 30.0, yt_dlp_bin="yt-dlp", write_info_json=True)
 
 
 # --- version_is_stale ---
@@ -231,3 +240,31 @@ def test_profile_music_uses_downloaded_excerpt(tmp_path, monkeypatch):
     assert data["description"]["summary"]
     assert "brightness" in data["description"]
     assert data["rich"] is None
+
+
+def test_profile_music_critic_attaches_block(tmp_path, monkeypatch):
+    pytest.importorskip("numpy")
+    src = tmp_path / "tone.wav"
+    _write_tone(src, freq=300.0, seconds=2.0)
+
+    def fake_download(source, outdir, seconds, **kwargs):
+        assert kwargs.get("write_info_json") is True
+        (outdir / "source.info.json").write_text(json.dumps({
+            "title": "Organic Lullaby", "artist": "Meg Bowles",
+            "album": "Blue Cosmos", "tags": ["ambient"]}))
+        dst = outdir / "source.wav"
+        shutil.copy(src, dst)
+        return dst
+
+    monkeypatch.setattr(fetch, "_download_excerpt", fake_download)
+    monkeypatch.setattr(fetch, "ytdlp_version", lambda *a, **k: "2026.06.09")
+    res = fetch.profile_music("Meg Bowles Organic Lullaby", seconds=2.0, critic=True)
+    c = res.critic
+    assert c is not None
+    assert c["metadata"]["artist"] == "Meg Bowles"
+    assert "ambient" in c["genre_hints"]
+    assert "Meg Bowles" in c["brief"]
+    assert "genre" in c["prompt"].lower()
+    assert "similar_artists" in c["prompt"] or "artist" in c["prompt"].lower()
+    # critic does not force the top-level rich field
+    assert res.rich is None
