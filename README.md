@@ -16,46 +16,41 @@ via the shell or by importing it.
 
 ## In an agent's hands
 
-A short conversation with an agent that has this skill connected:
+An agent with this skill connected, asked about a track:
 
-> 🧑 **You** — what's this track, and what does it actually *sound* like?
-> `https://www.youtube.com/watch?v=EfaFcjpuwkg`
+```text
+✻ Claude Code · music-hearing skill enabled
+───────────────────────────────────────────────────────────────────────────────
 
-> 🤖 **Agent** — Let me actually listen first, not guess from the title.
+> what's this track, and what does it actually sound like?
+  https://www.youtube.com/watch?v=EfaFcjpuwkg
 
-```console
-$ music-hearing "https://www.youtube.com/watch?v=EfaFcjpuwkg" --critic --rich
+● Not going to review it from the title. Let me listen.
+
+● Bash(music-hearing "…/watch?v=EfaFcjpuwkg" --critic --rich)
+  ⎿  summary : slow, dark, sub-heavy, dynamic (~67 BPM)
+     key     : A minor (0.90)  ·  tempo ~107 BPM  ·  harmonic 0.73 / perc 0.27
+     artist  : Carbon Based Lifeforms — "Hydroponic Garden"
+     hints   : ambient · downtempo · psybient
+
+● A slow A-minor exhalation for people who find Brian Eno a touch too eventful.
+  Carbon Based Lifeforms spend these ~107 imaginary BPM buffing one sub-bass
+  swell until it gleams — 73% harmonic, essentially beatless, a lava lamp with a
+  graduate degree. It is genuinely gorgeous and it is wallpaper, and it knows
+  exactly which one you need it to be at 2 a.m. Spa music for the Ableton crowd,
+  fine — you will still let the whole album run and pretend you were "working."
+
+  Genre    ambient / psybient, with a downtempo undertow
+  Like     Solar Fields · Sync24 · Aes Dana · early Biosphere
+  Verdict  beautiful background music that would be offended to hear you say so
+
+> ▌
 ```
 
-```jsonc
-{
-  "description": { "summary": "slow, dark, sub-heavy, dynamic (~67 BPM)" },
-  "rich": {
-    "key":   { "key": "A", "mode": "minor", "confidence": 0.90 },
-    "tempo": { "bpm": 107.7, "confidence": 0.32 },
-    "hpss":  { "harmonic_ratio": 0.73, "percussive_ratio": 0.27 }
-  },
-  "critic": {
-    "metadata":    { "artist": "Carbon Based Lifeforms", "album": "Hydroponic Garden" },
-    "genre_hints": ["ambient", "downtempo", "psybient"],
-    "brief":       "Acoustics: slow, dark, sub-heavy … key ~A minor, tempo ~107 BPM,
-                    harmonic/percussive 0.73/0.27 … Metadata: artist Carbon Based Lifeforms.",
-    "prompt":      "You are a seasoned music critic … return JSON {genre, similar_artists, impression}"
-  }
-}
-```
-
-> 🤖 **Agent** — Heard it. 🎧
->
-> **Genre** — ambient / *psybient* (psychedelic ambient) with downtempo roots. Slow (~107 BPM), A‑minor, deep sub‑bass, smooth and mostly beatless (harmonic ≫ percussive).
->
-> **Similar artists** — Solar Fields, Sync24, Aes Dana, early Biosphere.
->
-> **Impression** — Spacious and nocturnal: warm low end under glassy, drifting pads, more atmosphere than groove. It doesn't fill the room so much as dissolve it — melancholic, but calm.
-
-The agent ran the skill, read the `critic` block (acoustics + key/tempo +
-metadata + genre hints), and rendered the verdict **with its own model** — no LLM
-is built into the tool. (For a standalone verdict without an agent, add `--llm`.)
+The verdict leads with one paragraph — opinionated, but pinned to the actual
+numbers (A-minor, ~107 BPM, 73% harmonic, beatless). The agent ran the skill,
+read the `critic` block, and wrote that in **its own voice** — no LLM is baked
+into the tool. (Standalone, no agent? add `--llm`.)
 
 ## Install
 
