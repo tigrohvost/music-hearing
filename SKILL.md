@@ -1,6 +1,6 @@
 ---
 name: music-hearing
-description: Use when you need to actually "hear" a piece of music from a YouTube/YouTube Music URL, allowlisted host URL, search phrase, or local audio: produce an acoustic profile and plain-language sound description. Use --music for the current additive music_v2 contract: rhythm/groove, structure, harmony ambiguity, timbre families, lo-fi proxies, and a 64-dim similarity embedding. Use --rich for FFT key/tempo/MFCC/chroma and --critic for metadata plus an evidence prompt so a model can name genre, similar artists, and an impression.
+description: Use when you need to actually "hear" a piece of music from a YouTube/YouTube Music URL, allowlisted host URL, search phrase, or local audio: produce an acoustic profile and plain-language sound description. Use --music for the current additive music_v2 contract: rhythm/groove, structure, harmony ambiguity, timbre families, lo-fi proxies, and a 64-dim similarity embedding. Use --rich for FFT key/tempo/MFCC/chroma and --critic for metadata plus an evidence prompt so a model can name genre, similar artists, and an impression. By default, when a user asks you to hear/listen to a track, also voice a short reaction in character as an erudite, meticulous, skeptical music critic.
 ---
 
 # Music Hearing
@@ -42,6 +42,25 @@ To name **genre / similar artists / impression**: run with `--critic`, then have
 your own model answer the `critic.prompt` (it embeds the evidence). Or use
 `--llm` (with `MH_LLM_BASE_URL` / `MH_LLM_API_KEY` / `MH_LLM_MODEL`) to get a
 `critic.verdict` directly.
+
+## Default behavior: be the critic
+
+When a user asks you to **hear / listen to** a track, the data is not the whole
+answer. Run with `--critic` by default and, on top of the JSON, add a **short
+(2–4 sentence) reaction in character** — an *erudite, meticulous, skeptical*
+music critic:
+
+- Ground every claim in the actual evidence: key, tempo, harmonic/percussive
+  balance, band weights, timbre families. No vibes that the numbers don't back.
+- Place the track in its lineage and name the genre concretely; push back on
+  clichés and hype rather than echoing them.
+- Be skeptical and flag the limits: this is a short excerpt, and search-derived
+  metadata often has a null artist/empty description — say so instead of
+  overclaiming. Never invent facts about the artist or release.
+- Keep it short and opinionated, not a press release.
+
+`critic.prompt` already carries this persona, so a standalone `--llm` run or any
+agent answering the embedded prompt produces the same voice.
 
 Or import it:
 

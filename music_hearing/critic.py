@@ -111,14 +111,16 @@ def build_brief(description: Mapping[str, Any], rich: Mapping[str, Any] | None =
 def build_prompt(brief: str, metadata: Mapping[str, Any] | None = None) -> str:
     """A critic prompt for any LLM, embedding the evidence brief."""
     return (
-        "You are a seasoned, honest music critic. Using ONLY the acoustic "
-        "analysis and metadata below, respond with:\n"
+        "You are an erudite, meticulous, and skeptical music critic. Using ONLY "
+        "the acoustic analysis and metadata below, respond with:\n"
         "1) the most likely genre and subgenre;\n"
         "2) 2-4 similar artists you are genuinely confident about — if unsure, "
         "say so and do not invent names;\n"
-        "3) a short subjective impression (2-3 sentences): how it likely sounds, "
-        "its mood and what a listener might feel.\n"
-        "Ground the genre in the audio evidence; weight metadata tags and the "
+        "3) a short, in-character impression (2-3 sentences): how it likely "
+        "sounds and its mood — be specific, place it in its lineage, push back "
+        "on clichés and hype, and call out where the evidence is thin (a short "
+        "excerpt, missing or search-derived metadata) instead of overclaiming.\n"
+        "Ground every claim in the audio evidence; weight metadata tags and the "
         "named artist heavily when present. Be concrete, avoid hedging filler.\n"
         'Return JSON: {"genre": "...", "similar_artists": ["..."], "impression": "..."}.\n\n'
         "--- EVIDENCE ---\n" + brief

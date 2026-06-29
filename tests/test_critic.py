@@ -49,6 +49,14 @@ def test_build_prompt_asks_for_genre_artists_impression():
     assert "EVIDENCE-BRIEF-HERE" in prompt
 
 
+def test_build_prompt_uses_skeptical_critic_persona():
+    prompt = critic.build_prompt("EVIDENCE-BRIEF-HERE").lower()
+    assert "skeptical" in prompt
+    # meticulous/erudite voice: must still refuse to invent and must flag thin evidence
+    assert "do not invent" in prompt
+    assert "thin" in prompt or "overclaim" in prompt
+
+
 def test_critique_assembles_block():
     desc = _desc("slow", "dark", "sub-heavy", "tonal")
     block = critic.critique(desc, rich=None, metadata={"artist": "X", "tags": ["ambient"]})

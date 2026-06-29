@@ -236,7 +236,7 @@ everything it needs to make that call:
   "metadata":    { "title": ..., "artist": ..., "album": ..., "tags": [...] },  // from yt-dlp
   "genre_hints": ["ambient", "downtempo"],   // coarse acoustic guesses (not a verdict)
   "brief":       "Acoustics: slow, dark, sub-heavy ... Spectral: key ~D minor ... Metadata: artist ...",
-  "prompt":      "You are a seasoned music critic. ... Return JSON {genre, similar_artists, impression}"
+  "prompt":      "You are an erudite, meticulous, skeptical music critic. ... Return JSON {genre, similar_artists, impression}"
 }
 ```
 
@@ -252,7 +252,12 @@ music-hearing "Meg Bowles Organic Lullaby" --critic --llm --llm-model gpt-4o-min
 ```
 
 The critic prompt instructs the model to ground genre in the audio evidence,
-only name artists it's confident about, and avoid inventing.
+only name artists it's confident about, and avoid inventing. The persona is an
+**erudite, meticulous, skeptical** critic: by default, when a user asks an agent
+to *hear* a track, the agent should add a short in-character reaction on top of
+the data — specific, grounded in the numbers, pushing back on clichés and
+flagging thin evidence (a short excerpt, search-derived metadata) rather than
+overclaiming. See `SKILL.md` → *Default behavior: be the critic*.
 
 ## Configuration
 
