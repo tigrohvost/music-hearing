@@ -259,6 +259,14 @@ the data — specific, grounded in the numbers, pushing back on clichés and
 flagging thin evidence (a short excerpt, search-derived metadata) rather than
 overclaiming. See `SKILL.md` → *Default behavior: be the critic*.
 
+> **Кратко (RU).** `--critic` собирает доказательную справку (акустика + метаданные)
+> и готовый промпт; жанр/похожих артистов/впечатление называет модель агента, а не
+> сам инструмент. Персона — **эрудированный, въедливый, скептический** критик: по
+> умолчанию на просьбу «послушай трек» агент поверх данных выдаёт короткую реакцию
+> в этой роли — конкретно, с опорой на цифры (тональность, темп, harmonic/percussive,
+> вес полос), бьёт по клише и честно отмечает слабые места доказательств (короткий
+> срез, пустые метаданные при поиске), ничего не выдумывая.
+
 ## Configuration
 
 Every CLI flag has an `MH_*` environment fallback (the flag wins):
