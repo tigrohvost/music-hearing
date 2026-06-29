@@ -9,7 +9,7 @@ on PATH for yt-dlp's signature challenge — see the README.
 Configuration is via explicit arguments or ``MH_*`` environment variables
 (arguments win): ``MH_YTDLP_BIN``, ``MH_COOKIES_FILE``,
 ``MH_COOKIES_FROM_BROWSER``, ``MH_EXTRA_HOSTS``, ``MH_NATIVE_AUDIO``,
-``MH_EXTRACTOR_ARGS``, ``MH_MUSIC_V2``.
+``MH_EXTRACTOR_ARGS``, ``MH_REMOTE_COMPONENTS``, ``MH_MUSIC_V2``.
 """
 from __future__ import annotations
 
@@ -164,6 +164,7 @@ def build_ytdlp_cmd(resolved: str, output: str, seconds: float, *, yt_dlp_bin: s
                     cookies_from_browser: str | None = None, native_audio: bool = False,
                     extractor_args: str | None = None,
                     cookies_file: str | None = None,
+                    remote_components: str | None = None,
                     write_info_json: bool = False) -> list[str]:
     """Assemble the yt-dlp argv. Defaults reproduce the mp3 excerpt pipeline;
     ``native_audio`` skips the lossy re-encode, ``cookies_*`` / ``extractor_args``
@@ -186,6 +187,11 @@ def build_ytdlp_cmd(resolved: str, output: str, seconds: float, *, yt_dlp_bin: s
         cmd += ["--cookies", cookies_file]
     if extractor_args:
         cmd += ["--extractor-args", extractor_args]
+    # Opt-in: current yt-dlp solves YouTube's JS challenge with an external
+    # challenge solver fetched via e.g. "ejs:github". Off by default because
+    # older yt-dlp builds reject an unknown --remote-components flag.
+    if remote_components:
+        cmd += ["--remote-components", remote_components]
     if write_info_json:
         cmd += ["--write-info-json"]
     cmd += ["--output", str(output), resolved]
@@ -196,7 +202,7 @@ def _download_excerpt(source: str, outdir: pathlib.Path, seconds: float, *,
                       ytdlp_bin: str | None = None, cookies_file: str | None = None,
                       cookies_from_browser: str | None = None,
                       native_audio: bool | None = None, extractor_args: str | None = None,
-                      extra_hosts: str | None = None,
+                      extra_hosts: str | None = None, remote_components: str | None = None,
                       write_info_json: bool = False) -> pathlib.Path:
     yt_dlp = _require_yt_dlp(ytdlp_bin)
     resolved, _ = resolve_source(source, _extra_hosts(extra_hosts))
@@ -207,6 +213,7 @@ def _download_excerpt(source: str, outdir: pathlib.Path, seconds: float, *,
         native_audio=(native_audio if native_audio is not None else _env_flag("MH_NATIVE_AUDIO")),
         extractor_args=(extractor_args or _env("MH_EXTRACTOR_ARGS") or None),
         cookies_file=_cookies_file_if_present(cookies_file),
+        remote_components=(remote_components or _env("MH_REMOTE_COMPONENTS") or None),
         write_info_json=write_info_json,
     )
     try:
@@ -225,6 +232,7 @@ def profile_music(source: str, seconds: float = DEFAULT_SECONDS, *,
                   cookies_file: str | None = None, ytdlp_bin: str | None = None,
                   extra_hosts: str | None = None, cookies_from_browser: str | None = None,
                   native_audio: bool | None = None, extractor_args: str | None = None,
+                  remote_components: str | None = None,
                   rich: bool = False, music: bool = False, critic: bool = False, llm: bool = False,
                   llm_base_url: str | None = None, llm_api_key: str | None = None,
                   llm_model: str | None = None) -> MusicHearingProfile:
@@ -259,7 +267,8 @@ def profile_music(source: str, seconds: float = DEFAULT_SECONDS, *,
             source, tdpath, bounded_seconds, ytdlp_bin=ytdlp_bin,
             cookies_file=cookies_file, cookies_from_browser=cookies_from_browser,
             native_audio=native_audio, extractor_args=extractor_args,
-            extra_hosts=extra_hosts, write_info_json=critic)
+            extra_hosts=extra_hosts, remote_components=remote_components,
+            write_info_json=critic)
         profile = dsp.acoustic_profile(audio, max_seconds=bounded_seconds)
         profile_dict = asdict(profile)
         description = semantics.describe(profile_dict)

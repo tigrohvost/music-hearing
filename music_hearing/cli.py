@@ -24,6 +24,9 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--extra-hosts", help="comma/space list of extra allowed hosts, e.g. archive.org")
     ap.add_argument("--cookies-from-browser", help="yt-dlp --cookies-from-browser value, e.g. chromium")
     ap.add_argument("--extractor-args", help="raw yt-dlp --extractor-args value")
+    ap.add_argument("--remote-components",
+                    help="yt-dlp --remote-components value (or MH_REMOTE_COMPONENTS); "
+                         "current yt-dlp needs 'ejs:github' to solve YouTube's JS challenge")
     ap.add_argument("--native-audio", action="store_true", help="skip the lossy mp3 re-encode")
     ap.add_argument("--rich", action="store_true",
                     help="add numpy spectral features: key/tempo/mfcc/chroma (needs the 'rich' extra)")
@@ -51,6 +54,7 @@ def main(argv: list[str] | None = None) -> int:
             extra_hosts=args.extra_hosts,
             cookies_from_browser=args.cookies_from_browser,
             extractor_args=args.extractor_args,
+            remote_components=args.remote_components,
             native_audio=(True if args.native_audio else None),
             rich=args.rich,
             music=args.music,

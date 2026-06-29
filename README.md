@@ -99,6 +99,14 @@ curl -fsSL https://deno.land/install.sh | sh        # puts deno in ~/.deno/bin
 > saying "Requested format is not available", symlink deno somewhere always on
 > PATH: `sudo ln -s "$(command -v deno)" /usr/bin/deno`. If GitHub's release CDN
 > is blocked, deno also publishes at `https://dl.deno.land/`.
+>
+> **Recent yt-dlp also needs the EJS challenge solver.** Builds since the EJS
+> rework no longer ship the solver inline — without it you get the same
+> "Requested format is not available" plus a `Signature solving failed` /
+> `n challenge solving failed` warning, even with deno present. Pass
+> `--remote-components ejs:github` (or set `MH_REMOTE_COMPONENTS=ejs:github`) so
+> yt-dlp fetches the solver from its own GitHub releases. It is off by default
+> because older yt-dlp builds reject the unknown flag.
 
 Point at a specific yt-dlp binary with `--ytdlp-bin` / `MH_YTDLP_BIN` if it
 isn't named `yt-dlp` on PATH.
@@ -257,6 +265,7 @@ Every CLI flag has an `MH_*` environment fallback (the flag wins):
 | `--extra-hosts` | `MH_EXTRA_HOSTS` | extra allowed hosts (comma/space), e.g. `archive.org,freemusicarchive.org` |
 | `--cookies-from-browser` | `MH_COOKIES_FROM_BROWSER` | read cookies from a local browser profile |
 | `--extractor-args` | `MH_EXTRACTOR_ARGS` | raw yt-dlp `--extractor-args` |
+| `--remote-components` | `MH_REMOTE_COMPONENTS` | raw yt-dlp `--remote-components`, e.g. `ejs:github` (YouTube JS challenge solver) |
 | `--native-audio` | `MH_NATIVE_AUDIO` | skip the lossy mp3 re-encode |
 | `--music` | `MH_MUSIC_V2` | include additive `music_v2`; install `[rich]` |
 | `--llm-base-url` | `MH_LLM_BASE_URL` | OpenAI-compatible base URL for `--llm` |
@@ -301,7 +310,7 @@ non-YouTube path keeps working.
 
 ## Gotchas
 
-- **"Requested format is not available"** → no JS runtime; put `deno` on PATH.
+- **"Requested format is not available"** → no JS runtime (put `deno` on PATH) or, on recent yt-dlp, no EJS solver (add `--remote-components ejs:github`).
 - **"Sign in to confirm you're not a bot"** → cookies missing/expired; re-export.
 - **Hangs / connection errors only inside an agent** → the agent's env had a
   proxy; this tool forces `--proxy ""`, but check that the host has direct egress.

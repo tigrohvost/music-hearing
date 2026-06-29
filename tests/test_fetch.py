@@ -115,6 +115,15 @@ def test_build_cmd_write_info_json_opt_in():
         "u", "/tmp/o.%(ext)s", 30.0, yt_dlp_bin="yt-dlp", write_info_json=True)
 
 
+def test_build_cmd_remote_components_opt_in():
+    # default off: older yt-dlp builds reject an unknown --remote-components flag
+    assert "--remote-components" not in fetch.build_ytdlp_cmd(
+        "u", "/tmp/o.%(ext)s", 30.0, yt_dlp_bin="yt-dlp")
+    cmd = fetch.build_ytdlp_cmd("u", "/tmp/o.%(ext)s", 30.0, yt_dlp_bin="yt-dlp",
+                                remote_components="ejs:github")
+    assert cmd[cmd.index("--remote-components") + 1] == "ejs:github"
+
+
 # --- version_is_stale ---
 
 def test_version_is_stale_flags_old_builds():
@@ -201,6 +210,38 @@ def test_download_excerpt_explicit_cookies_arg_overrides_env(tmp_path, monkeypat
     monkeypatch.setattr(fetch.subprocess, "run", fake_run)
     fetch._download_excerpt("anything", tmp_path, 20.0, cookies_file=str(arg_cookie))
     assert seen["cmd"][seen["cmd"].index("--cookies") + 1] == str(arg_cookie)
+
+
+def test_download_excerpt_reads_remote_components_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("MH_REMOTE_COMPONENTS", "ejs:github")
+    monkeypatch.setattr(fetch.shutil, "which", lambda _: "/usr/bin/yt-dlp")
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        seen["cmd"] = cmd
+        (tmp_path / "source.webm").write_bytes(b"\x00\x00")
+        class R: pass
+        return R()
+
+    monkeypatch.setattr(fetch.subprocess, "run", fake_run)
+    fetch._download_excerpt("anything", tmp_path, 20.0)
+    assert seen["cmd"][seen["cmd"].index("--remote-components") + 1] == "ejs:github"
+
+
+def test_download_excerpt_remote_components_arg_overrides_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("MH_REMOTE_COMPONENTS", "ejs:npm")
+    monkeypatch.setattr(fetch.shutil, "which", lambda _: "/usr/bin/yt-dlp")
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        seen["cmd"] = cmd
+        (tmp_path / "source.webm").write_bytes(b"\x00\x00")
+        class R: pass
+        return R()
+
+    monkeypatch.setattr(fetch.subprocess, "run", fake_run)
+    fetch._download_excerpt("anything", tmp_path, 20.0, remote_components="ejs:github")
+    assert seen["cmd"][seen["cmd"].index("--remote-components") + 1] == "ejs:github"
 
 
 def test_download_excerpt_surfaces_ytdlp_stderr_on_failure(tmp_path, monkeypatch):
