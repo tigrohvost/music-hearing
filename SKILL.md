@@ -60,6 +60,12 @@ print(prof.music_description["summary"])   # music_v2 labels
   signature challenge. Without it YouTube returns "Requested format is not
   available". Put `deno` on the PATH the tool's subprocess actually uses (often
   a sanitized `/usr/bin`).
+- **EJS challenge solver** — recent yt-dlp builds no longer ship YouTube's JS
+  challenge solver inline; even with deno they fail the same way plus a
+  "Signature solving failed" / "n challenge solving failed" warning. Pass
+  `--remote-components ejs:github` (or `MH_REMOTE_COMPONENTS=ejs:github`) to
+  fetch the solver from yt-dlp's own GitHub releases. Off by default so older
+  yt-dlp builds that reject the flag keep working.
 - **YouTube cookies** — a logged-in (ideally throwaway) account exported as a
   Netscape `cookies.txt`, passed via `--cookies` / `MH_COOKIES_FILE`. Never
   commit it. Cookies rotate; re-export periodically.
