@@ -31,8 +31,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--rich", action="store_true",
                     help="add numpy spectral features: key/tempo/mfcc/chroma (needs the 'rich' extra)")
     ap.add_argument("--music", action="store_true",
-                    help="add the additive music_v2 musical-hearing block "
-                         "(also enabled by RAIN_HEARING_MUSIC_V2 or MH_MUSIC_V2)")
+                    help="add the music_v2 musical-hearing block "
+                         "(also enabled by MH_MUSIC_V2)")
     ap.add_argument("--critic", action="store_true",
                     help="add a critic block: metadata + genre hints + evidence brief + prompt "
                          "for naming genre / similar artists / impression")

@@ -42,7 +42,7 @@ def test_build_music_v2_contract_is_bounded_and_serializable(tmp_path):
 def test_profile_music_env_flag_adds_music_v2_without_rich_output(tmp_path, monkeypatch):
     wav = tmp_path / "tone.wav"
     _write_tone(wav, seconds=2.0)
-    monkeypatch.setenv("RAIN_HEARING_MUSIC_V2", "1")
+    monkeypatch.setenv("MH_MUSIC_V2", "1")
     monkeypatch.setattr(fetch, "_download_excerpt", lambda *a, **k: wav)
     monkeypatch.setattr(fetch, "ytdlp_version", lambda *a, **k: "2026.06.09")
 
@@ -58,7 +58,6 @@ def test_profile_music_env_flag_adds_music_v2_without_rich_output(tmp_path, monk
 
 
 def test_music_v2_requested_accepts_explicit_strings(monkeypatch):
-    monkeypatch.delenv("RAIN_HEARING_MUSIC_V2", raising=False)
     monkeypatch.delenv("MH_MUSIC_V2", raising=False)
     assert music_v2.requested("v2") is True
     assert music_v2.requested("false") is False

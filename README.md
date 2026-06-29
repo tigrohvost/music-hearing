@@ -1,10 +1,10 @@
 # music-hearing
 
 Hear a track: turn a YouTube / YouTube Music URL, an allowlisted host URL, or a
-search phrase into an **acoustic profile**, a **plain-language description**,
-and optionally a bounded `music_v2` musical-hearing profile — so an agent (or
-you) can reason about how music actually *sounds* instead of guessing from the
-title.
+search phrase into an **acoustic profile** and a **plain-language description**,
+with optional layers for deeper spectral detail (`--rich`), musical analysis
+(`--music`), and a critic's brief (`--critic`) — so an agent (or you) can reason
+about how music actually *sounds* instead of guessing from the title.
 
 ```
 $ music-hearing "Meg Bowles Organic Lullaby" --summary
@@ -31,7 +31,7 @@ An agent with this skill connected, asked about a track:
 ● Bash(music-hearing "…/watch?v=EfaFcjpuwkg" --critic --rich --music)
   ⎿  summary : slow, dark, sub-heavy, dynamic (~67 BPM)
      key     : A minor (0.90)  ·  tempo ~107 BPM  ·  harmonic 0.73 / perc 0.27
-     v2      : blurred pulse, sparse rhythm, loop-like, A minor, warm_pad/drone
+     music   : blurred pulse, sparse rhythm, loop-like, A minor, warm_pad/drone
      artist  : Carbon Based Lifeforms — "Hydroponic Garden"
      hints   : ambient · downtempo · psybient
 
@@ -198,11 +198,11 @@ p = describe(vars(acoustic_profile("track.mp3")))
 print(compare(vars(acoustic_profile("a.mp3")), vars(acoustic_profile("b.mp3"))))
 ```
 
-## Music v2 analysis (`--music`)
+## Musical analysis (`--music`)
 
-`--music` adds the additive `music_v2` contract from Rain's music-hearing
-workflow. It is not a replacement for the old `profile` and `description`
-fields; those stay stable for existing callers.
+`--music` adds a deeper, bounded musical read on top of the base profile, under
+the `music_v2` key. The base `profile` and `description` are always present;
+`--music` is purely additive.
 
 ```jsonc
 "music_v2": {
@@ -221,9 +221,8 @@ ambiguity, mixture-level timbre families, low-fidelity artifact proxies, or a
 compact similarity vector. It does **not** do lyrics, ASR, speaker recognition,
 source separation, or long audio retention.
 
-`--music` needs numpy, so install `music-hearing[rich]`. The compatibility env
-flag `RAIN_HEARING_MUSIC_V2=1` and the standalone alias `MH_MUSIC_V2=1` include
-`music_v2` even when the caller does not pass `--music`.
+`--music` needs numpy, so install `music-hearing[rich]`. Setting `MH_MUSIC_V2=1`
+includes `music_v2` even when the caller does not pass `--music`.
 
 ## Music-critic analysis (`--critic`)
 
@@ -283,7 +282,6 @@ Every CLI flag has an `MH_*` environment fallback (the flag wins):
 | `--music` | `MH_MUSIC_V2` | include additive `music_v2`; install `[rich]` |
 | `--llm-base-url` | `MH_LLM_BASE_URL` | OpenAI-compatible base URL for `--llm` |
 | `--llm-model` | `MH_LLM_MODEL` | model id for `--llm` |
-| (env only) | `RAIN_HEARING_MUSIC_V2` | compatibility flag to include `music_v2` |
 | (env only) | `MH_LLM_API_KEY` | bearer key for `--llm` (never a CLI flag) |
 
 A missing cookies file is ignored (the `--cookies` flag is dropped) so the

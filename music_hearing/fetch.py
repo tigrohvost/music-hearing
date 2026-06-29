@@ -240,8 +240,7 @@ def profile_music(source: str, seconds: float = DEFAULT_SECONDS, *,
     its acoustic profile + semantic description.
 
     ``rich=True`` attaches the numpy spectral profile (needs the ``rich`` extra).
-    ``music=True`` or ``RAIN_HEARING_MUSIC_V2=1`` / ``MH_MUSIC_V2=1`` attaches
-    the additive ``music_v2`` profile.
+    ``music=True`` or ``MH_MUSIC_V2=1`` attaches the ``music_v2`` profile.
     ``critic=True`` attaches a ``critic`` block (metadata + genre hints + an
     evidence brief + a ready prompt) so a model can name genre / similar artists
     / impression. ``llm=True`` additionally calls an OpenAI-compatible endpoint

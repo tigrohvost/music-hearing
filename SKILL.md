@@ -1,6 +1,6 @@
 ---
 name: music-hearing
-description: Use when you need to actually "hear" a piece of music from a YouTube/YouTube Music URL, allowlisted host URL, search phrase, or local audio: produce an acoustic profile and plain-language sound description. Use --music for the current additive music_v2 contract: rhythm/groove, structure, harmony ambiguity, timbre families, lo-fi proxies, and a 64-dim similarity embedding. Use --rich for FFT key/tempo/MFCC/chroma and --critic for metadata plus an evidence prompt so a model can name genre, similar artists, and an impression. By default, when a user asks you to hear/listen to a track, also voice a short reaction in character as an erudite, meticulous, skeptical music critic.
+description: Use when you need to actually "hear" a piece of music from a YouTube/YouTube Music URL, allowlisted host URL, search phrase, or local audio: produce an acoustic profile and plain-language sound description. Use --music for a deeper musical read (rhythm/groove, structure, harmony ambiguity, timbre families, lo-fi proxies, and a 64-dim similarity embedding). Use --rich for FFT key/tempo/MFCC/chroma and --critic for metadata plus an evidence prompt so a model can name genre, similar artists, and an impression. By default, when a user asks you to hear/listen to a track, also voice a short reaction in character as an erudite, meticulous, skeptical music critic.
 ---
 
 # Music Hearing
@@ -35,8 +35,8 @@ music-hearing "<url-or-search>" --summary       # just the one-line description
 
 Output is JSON: `profile` (numbers), `description` (`summary` + labels),
 `rich` when `--rich` is set, `music_v2`/`music_description` when `--music` or
-`RAIN_HEARING_MUSIC_V2=1` / `MH_MUSIC_V2=1` is set, and `critic` when
-`--critic` is set. With `--summary`, only the one-line summary prints.
+`MH_MUSIC_V2=1` is set, and `critic` when `--critic` is set. With `--summary`,
+only the one-line summary prints.
 
 To name **genre / similar artists / impression**: run with `--critic`, then have
 your own model answer the `critic.prompt` (it embeds the evidence). Or use
@@ -67,8 +67,8 @@ Or import it:
 ```python
 from music_hearing import profile_music, acoustic_profile, describe, compare
 prof = profile_music("Meg Bowles Organic Lullaby", cookies_file="/path/yt-cookies.txt", music=True)
-print(prof.description["summary"])         # legacy acoustic description
-print(prof.music_description["summary"])   # music_v2 labels
+print(prof.description["summary"])         # base acoustic description
+print(prof.music_description["summary"])   # deeper musical labels (--music)
 ```
 
 ## Prerequisites (runtime, not pip)

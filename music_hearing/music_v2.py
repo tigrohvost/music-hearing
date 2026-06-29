@@ -23,7 +23,7 @@ _ANALYSIS_LOCK = threading.Lock()
 
 
 def env_enabled(name: str | None = None) -> bool:
-    names = (name,) if name else ("RAIN_HEARING_MUSIC_V2", "MH_MUSIC_V2")
+    names = (name,) if name else ("MH_MUSIC_V2",)
     return any((os.environ.get(n) or "").strip().lower() in {"1", "true", "yes", "on"} for n in names)
 
 
