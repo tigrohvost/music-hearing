@@ -115,3 +115,44 @@ def compare(a: Mapping[str, Any], b: Mapping[str, Any]) -> dict:
         "bpm_diff": bpm_diff,
         "rms_db_diff": round(abs(_f(a, "rms_dbfs") - _f(b, "rms_dbfs")), 2),
     }
+
+
+def describe_music_v2(music_v2: Mapping[str, Any]) -> dict:
+    """Plain-language musical labels from the additive ``music_v2`` profile."""
+    rhythm = music_v2.get("rhythm") if isinstance(music_v2.get("rhythm"), Mapping) else {}
+    structure = music_v2.get("structure") if isinstance(music_v2.get("structure"), Mapping) else {}
+    harmony = music_v2.get("harmony") if isinstance(music_v2.get("harmony"), Mapping) else {}
+    timbre = music_v2.get("timbre") if isinstance(music_v2.get("timbre"), Mapping) else {}
+    lofi = music_v2.get("lofi") if isinstance(music_v2.get("lofi"), Mapping) else {}
+    density = rhythm.get("density") if isinstance(rhythm.get("density"), Mapping) else {}
+    grid = rhythm.get("beat_grid") if isinstance(rhythm.get("beat_grid"), Mapping) else {}
+    arc = structure.get("arc") if isinstance(structure.get("arc"), Mapping) else {}
+    onset = _f(density, "onset_rate_per_sec")
+    pulse = _f(grid, "pulse_clarity")
+    motion = _f(arc, "arrangement_motion")
+    families = [f.get("label") for f in timbre.get("families", []) if isinstance(f, Mapping)][:3]
+    groove = "stable" if pulse >= 0.65 else "loose" if pulse >= 0.3 else "blurred"
+    rhythm_density = "dense" if onset >= 3.0 else "active" if onset >= 1.2 else "sparse"
+    arrangement = "evolving" if motion >= 0.45 else "gently moving" if motion >= 0.18 else "loop-like"
+    key = " ".join(str(x) for x in (harmony.get("key"), harmony.get("mode")) if x) or "ambiguous"
+    artifacts = []
+    if _f(lofi, "hiss_level") >= 0.35:
+        artifacts.append("hiss")
+    if _f(lofi, "click_pop_rate_per_sec") >= 0.2:
+        artifacts.append("clicks")
+    if _f(lofi, "wow_flutter_proxy") >= 0.25:
+        artifacts.append("wow/flutter")
+    parts = [groove + " pulse", rhythm_density + " rhythm", arrangement, key]
+    if families:
+        parts.append("/".join(str(f) for f in families))
+    if artifacts:
+        parts.append("lofi " + "+".join(artifacts))
+    return {
+        "groove": groove,
+        "rhythm_density": rhythm_density,
+        "arrangement": arrangement,
+        "key_hint": key,
+        "timbre_families": families,
+        "lofi_artifacts": artifacts,
+        "summary": ", ".join(parts),
+    }

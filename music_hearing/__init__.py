@@ -11,9 +11,10 @@ from __future__ import annotations
 from .critic import critique, genre_hints
 from .dsp import AcousticProfile, acoustic_profile, load_mono_samples
 from .fetch import MusicHearingProfile, profile_music, resolve_source
-from .semantics import compare, describe
+from .music_v2 import build_music_v2, empty_music_v2
+from .semantics import compare, describe, describe_music_v2
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "AcousticProfile",
@@ -22,7 +23,10 @@ __all__ = [
     "MusicHearingProfile",
     "profile_music",
     "resolve_source",
+    "build_music_v2",
+    "empty_music_v2",
     "describe",
+    "describe_music_v2",
     "compare",
     "critique",
     "genre_hints",

@@ -9,7 +9,7 @@ on PATH for yt-dlp's signature challenge — see the README.
 Configuration is via explicit arguments or ``MH_*`` environment variables
 (arguments win): ``MH_YTDLP_BIN``, ``MH_COOKIES_FILE``,
 ``MH_COOKIES_FROM_BROWSER``, ``MH_EXTRA_HOSTS``, ``MH_NATIVE_AUDIO``,
-``MH_EXTRACTOR_ARGS``.
+``MH_EXTRACTOR_ARGS``, ``MH_MUSIC_V2``.
 """
 from __future__ import annotations
 
@@ -85,6 +85,8 @@ class MusicHearingProfile:
     stale_warning: str = ""
     description: dict[str, Any] = field(default_factory=dict)
     rich: dict[str, Any] | None = None
+    music_v2: dict[str, Any] | None = None
+    music_description: dict[str, Any] | None = None
     critic: dict[str, Any] | None = None
 
 
@@ -223,19 +225,23 @@ def profile_music(source: str, seconds: float = DEFAULT_SECONDS, *,
                   cookies_file: str | None = None, ytdlp_bin: str | None = None,
                   extra_hosts: str | None = None, cookies_from_browser: str | None = None,
                   native_audio: bool | None = None, extractor_args: str | None = None,
-                  rich: bool = False, critic: bool = False, llm: bool = False,
+                  rich: bool = False, music: bool = False, critic: bool = False, llm: bool = False,
                   llm_base_url: str | None = None, llm_api_key: str | None = None,
                   llm_model: str | None = None) -> MusicHearingProfile:
     """Fetch a bounded excerpt for ``source`` (URL or search phrase) and return
     its acoustic profile + semantic description.
 
     ``rich=True`` attaches the numpy spectral profile (needs the ``rich`` extra).
+    ``music=True`` or ``RAIN_HEARING_MUSIC_V2=1`` / ``MH_MUSIC_V2=1`` attaches
+    the additive ``music_v2`` profile.
     ``critic=True`` attaches a ``critic`` block (metadata + genre hints + an
     evidence brief + a ready prompt) so a model can name genre / similar artists
     / impression. ``llm=True`` additionally calls an OpenAI-compatible endpoint
     to fill in that verdict."""
     bounded_seconds = max(5.0, min(float(seconds), MAX_SECONDS))
     resolved, extractor = resolve_source(source, _extra_hosts(extra_hosts))
+    from . import music_v2 as _music_v2
+    music_requested = _music_v2.requested(music) or _music_v2.env_enabled()
     version = ytdlp_version(ytdlp_bin)
     warning = ""
     if extractor in {"youtube-url", "ytsearch1"} and version_is_stale(version):
@@ -245,6 +251,8 @@ def profile_music(source: str, seconds: float = DEFAULT_SECONDS, *,
             "allowlisted host (e.g. archive.org)."
         )
     critic_block = None
+    music_block = None
+    music_description = None
     with tempfile.TemporaryDirectory(prefix="music-hearing-") as td:
         tdpath = pathlib.Path(td)
         audio = _download_excerpt(
@@ -259,6 +267,22 @@ def profile_music(source: str, seconds: float = DEFAULT_SECONDS, *,
         if rich or critic:
             from . import spectral
             rich_data = spectral.rich_profile(str(audio), max_seconds=bounded_seconds)
+        elif music_requested:
+            try:
+                from . import spectral
+                rich_data = spectral.rich_profile(str(audio), max_seconds=bounded_seconds)
+            except Exception:
+                rich_data = {}
+        if music_requested:
+            source_kind = "youtube_excerpt" if extractor in {"youtube-url", "ytsearch1"} else "external_excerpt"
+            music_block = _music_v2.build_music_v2(
+                audio,
+                base_profile=profile_dict,
+                rich_profile=rich_data,
+                seconds=bounded_seconds,
+                source_kind=source_kind,
+            )
+            music_description = semantics.describe_music_v2(music_block)
         if critic:
             from . import critic as _critic
             from . import metadata as _metadata
@@ -282,5 +306,7 @@ def profile_music(source: str, seconds: float = DEFAULT_SECONDS, *,
         stale_warning=warning,
         description=description,
         rich=(rich_data if rich else None),
+        music_v2=music_block,
+        music_description=music_description,
         critic=critic_block,
     )

@@ -26,12 +26,13 @@ def test_cli_passes_flags_through_and_prints_json(capsys, monkeypatch):
 
     monkeypatch.setattr(cli, "profile_music", fake_profile_music)
     rc = cli.main(["Meg Bowles Organic Lullaby", "--seconds", "30",
-                   "--cookies", "/tmp/c.txt", "--rich"])
+                   "--cookies", "/tmp/c.txt", "--rich", "--music"])
     assert rc == 0
     assert seen["source"] == "Meg Bowles Organic Lullaby"
     assert seen["seconds"] == 30.0
     assert seen["cookies_file"] == "/tmp/c.txt"
     assert seen["rich"] is True
+    assert seen["music"] is True
     out = json.loads(capsys.readouterr().out)
     assert out["description"]["summary"].startswith("slow")
 

@@ -1,9 +1,10 @@
 # music-hearing
 
 Hear a track: turn a YouTube / YouTube Music URL, an allowlisted host URL, or a
-search phrase into an **acoustic profile** plus a **plain-language description** —
-so an agent (or you) can reason about how music actually *sounds* instead of
-guessing from the title.
+search phrase into an **acoustic profile**, a **plain-language description**,
+and optionally a bounded `music_v2` musical-hearing profile — so an agent (or
+you) can reason about how music actually *sounds* instead of guessing from the
+title.
 
 ```
 $ music-hearing "Meg Bowles Organic Lullaby" --summary
@@ -27,9 +28,10 @@ An agent with this skill connected, asked about a track:
 
 ● Not going to review it from the title. Let me listen.
 
-● Bash(music-hearing "…/watch?v=EfaFcjpuwkg" --critic --rich)
+● Bash(music-hearing "…/watch?v=EfaFcjpuwkg" --critic --rich --music)
   ⎿  summary : slow, dark, sub-heavy, dynamic (~67 BPM)
      key     : A minor (0.90)  ·  tempo ~107 BPM  ·  harmonic 0.73 / perc 0.27
+     v2      : blurred pulse, sparse rhythm, loop-like, A minor, warm_pad/drone
      artist  : Carbon Based Lifeforms — "Hydroponic Garden"
      hints   : ambient · downtempo · psybient
 
@@ -58,7 +60,7 @@ into the tool. (Standalone, no agent? add `--llm`.)
 
 ```bash
 pip install git+https://github.com/tigrohvost/music-hearing.git          # base (stdlib only)
-pip install "music-hearing[rich] @ git+https://github.com/tigrohvost/music-hearing.git"   # + numpy spectral
+pip install "music-hearing[rich] @ git+https://github.com/tigrohvost/music-hearing.git"   # + numpy spectral/music_v2
 ```
 
 Or from a clone:
@@ -67,11 +69,12 @@ Or from a clone:
 git clone https://github.com/tigrohvost/music-hearing.git
 cd music-hearing
 pip install .            # base
-pip install .[rich]      # + numpy for key/tempo/mfcc/chroma
+pip install .[rich]      # + numpy for key/tempo/mfcc/chroma/music_v2
 ```
 
 Python 3.10+. The base package has **zero** Python dependencies; `[rich]` adds
-numpy. The CLI entry point `music-hearing` is installed on your PATH.
+numpy for `--rich`, `--music`, and `--critic` spectral evidence. The CLI entry
+point `music-hearing` is installed on your PATH.
 
 ### 2. Runtime prerequisites (system tools, not pip)
 
@@ -163,6 +166,7 @@ music-hearing "Meg Bowles Organic Lullaby"
 music-hearing "https://www.youtube.com/watch?v=EfaFcjpuwkg" --seconds 30 --cookies ./yt-cookies.txt
 music-hearing "https://archive.org/details/some-item" --extra-hosts archive.org
 music-hearing "<url-or-search>" --rich          # add key/tempo/mfcc/chroma
+music-hearing "<url-or-search>" --music         # add music_v2 rhythm/structure/harmony/timbre/embedding
 music-hearing "<url-or-search>" --critic         # genre/similar-artist/impression brief + prompt
 music-hearing "<url-or-search>" --critic --llm   # fill the verdict via an LLM (see config)
 music-hearing "<url-or-search>" --summary       # one-line description only
@@ -176,6 +180,8 @@ from music_hearing import profile_music, acoustic_profile, describe, compare
 # fetch + profile a remote track
 prof = profile_music("Meg Bowles Organic Lullaby", cookies_file="yt-cookies.txt")
 print(prof.description["summary"])
+prof = profile_music("Meg Bowles Organic Lullaby", cookies_file="yt-cookies.txt", music=True)
+print(prof.music_description["summary"])
 
 # profile a local file directly (no network)
 p = describe(vars(acoustic_profile("track.mp3")))
@@ -183,6 +189,33 @@ p = describe(vars(acoustic_profile("track.mp3")))
 # compare two profiles
 print(compare(vars(acoustic_profile("a.mp3")), vars(acoustic_profile("b.mp3"))))
 ```
+
+## Music v2 analysis (`--music`)
+
+`--music` adds the additive `music_v2` contract from Rain's music-hearing
+workflow. It is not a replacement for the old `profile` and `description`
+fields; those stay stable for existing callers.
+
+```jsonc
+"music_v2": {
+  "schema": "music_hearing_profile.v2",
+  "rhythm":    { "bpm": ..., "beat_grid": ..., "density": ..., "syncopation": ... },
+  "structure": { "sections": ..., "arc": ..., "novelty": ... },
+  "harmony":   { "key": ..., "mode": ..., "key_ambiguity": ..., "chord_hints": ... },
+  "timbre":    { "families": ..., "attack_profile": ..., "spectral_texture": ... },
+  "lofi":      { "hiss_level": ..., "wow_flutter_proxy": ..., "noise_floor_dbfs_est": ... },
+  "embedding": { "schema": "music_embedding.handcrafted.v1", "dim": 64, "values": [...] }
+}
+```
+
+Use it when you need musical understanding: groove, arrangement shape, harmony
+ambiguity, mixture-level timbre families, low-fidelity artifact proxies, or a
+compact similarity vector. It does **not** do lyrics, ASR, speaker recognition,
+source separation, or long audio retention.
+
+`--music` needs numpy, so install `music-hearing[rich]`. The compatibility env
+flag `RAIN_HEARING_MUSIC_V2=1` and the standalone alias `MH_MUSIC_V2=1` include
+`music_v2` even when the caller does not pass `--music`.
 
 ## Music-critic analysis (`--critic`)
 
@@ -225,8 +258,10 @@ Every CLI flag has an `MH_*` environment fallback (the flag wins):
 | `--cookies-from-browser` | `MH_COOKIES_FROM_BROWSER` | read cookies from a local browser profile |
 | `--extractor-args` | `MH_EXTRACTOR_ARGS` | raw yt-dlp `--extractor-args` |
 | `--native-audio` | `MH_NATIVE_AUDIO` | skip the lossy mp3 re-encode |
+| `--music` | `MH_MUSIC_V2` | include additive `music_v2`; install `[rich]` |
 | `--llm-base-url` | `MH_LLM_BASE_URL` | OpenAI-compatible base URL for `--llm` |
 | `--llm-model` | `MH_LLM_MODEL` | model id for `--llm` |
+| (env only) | `RAIN_HEARING_MUSIC_V2` | compatibility flag to include `music_v2` |
 | (env only) | `MH_LLM_API_KEY` | bearer key for `--llm` (never a CLI flag) |
 
 A missing cookies file is ignored (the `--cookies` flag is dropped) so the
@@ -246,6 +281,10 @@ non-YouTube path keeps working.
 - `rich` (only with `--rich`) — true FFT centroid/rolloff/flatness/bandwidth,
   `key` (Krumhansl), `tempo` (octave-corrected, with confidence), `mfcc`,
   `chroma`, `lufs_approx`, `hpss`, `stereo`, `timeline`
+- `music_v2` (only with `--music` / env flag) — `rhythm`, `structure`,
+  `harmony`, `timbre`, `lofi`, 64-dim handcrafted `embedding`, quality flags
+- `music_description` (with `music_v2`) — compact labels for groove, density,
+  arrangement, key hint, timbre families, and lo-fi artifacts
 - `critic` (only with `--critic`) — `metadata`, `genre_hints`, `brief`,
   `prompt`, and (with `--llm`) `verdict` = `{genre, similar_artists, impression}`
 
@@ -257,6 +296,8 @@ non-YouTube path keeps working.
    5-band Goertzel sketch, a coarse centroid, and an autocorrelation BPM.
 3. **semantics** — map the numbers to words and a one-line summary.
 4. **spectral** *(optional)* — numpy FFT for the detailed view.
+5. **music_v2** *(optional)* — bounded mixture-level musical analysis and a
+   compact handcrafted embedding.
 
 ## Gotchas
 
@@ -264,6 +305,8 @@ non-YouTube path keeps working.
 - **"Sign in to confirm you're not a bot"** → cookies missing/expired; re-export.
 - **Hangs / connection errors only inside an agent** → the agent's env had a
   proxy; this tool forces `--proxy ""`, but check that the host has direct egress.
+- **`--music` returns a warning envelope** → install `music-hearing[rich]`; the
+  v2 submodules need numpy and degrade instead of crashing the caller.
 - Cookies expire — re-export every few weeks. Never commit them (`.gitignore`
   already blocks `*cookies*.txt` and `secrets/`).
 

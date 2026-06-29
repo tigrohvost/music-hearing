@@ -1,6 +1,6 @@
 ---
 name: music-hearing
-description: Use when you need to actually "hear" a piece of music — turn a YouTube/YouTube Music URL, an allowlisted host URL, or a search phrase into an acoustic profile (loudness, bands, BPM, spectral centroid) plus a plain-language description ("slow, dark, sub-heavy, dynamic"). Optional rich mode adds key, tempo, MFCC, and chroma. Optional critic mode adds metadata + an evidence brief and prompt so a model can name genre, similar artists, and an impression.
+description: Use when you need to actually "hear" a piece of music from a YouTube/YouTube Music URL, allowlisted host URL, search phrase, or local audio: produce an acoustic profile and plain-language sound description. Use --music for the current additive music_v2 contract: rhythm/groove, structure, harmony ambiguity, timbre families, lo-fi proxies, and a 64-dim similarity embedding. Use --rich for FFT key/tempo/MFCC/chroma and --critic for metadata plus an evidence prompt so a model can name genre, similar artists, and an impression.
 ---
 
 # Music Hearing
@@ -17,6 +17,7 @@ it (Claude, openclaw, Hermes, custom).
 - A user/agent references a track and you want its real character, not a guess.
 - Comparing two tracks ("is this like that reference?") — see `compare()`.
 - Steering generation toward a sonic target heard from a reference.
+- Creating compact musical reference embeddings with `--music`.
 
 ## How to use
 
@@ -26,14 +27,16 @@ Prefer the CLI (works for any agent via shell):
 music-hearing "Meg Bowles Organic Lullaby"
 music-hearing "https://www.youtube.com/watch?v=EfaFcjpuwkg" --seconds 30
 music-hearing "<url-or-search>" --rich          # + key/tempo/mfcc/chroma (needs the rich extra)
+music-hearing "<url-or-search>" --music         # + music_v2 rhythm/structure/harmony/timbre/embedding
 music-hearing "<url-or-search>" --critic         # + metadata, genre hints, evidence brief, critic prompt
 music-hearing "<url-or-search>" --critic --llm   # also fill genre/similar-artists/impression via an LLM
 music-hearing "<url-or-search>" --summary       # just the one-line description
 ```
 
 Output is JSON: `profile` (numbers), `description` (`summary` + labels),
-`rich` when `--rich` is set, and `critic` when `--critic` is set. With
-`--summary`, only the one-line summary prints.
+`rich` when `--rich` is set, `music_v2`/`music_description` when `--music` or
+`RAIN_HEARING_MUSIC_V2=1` / `MH_MUSIC_V2=1` is set, and `critic` when
+`--critic` is set. With `--summary`, only the one-line summary prints.
 
 To name **genre / similar artists / impression**: run with `--critic`, then have
 your own model answer the `critic.prompt` (it embeds the evidence). Or use
@@ -44,8 +47,9 @@ Or import it:
 
 ```python
 from music_hearing import profile_music, acoustic_profile, describe, compare
-prof = profile_music("Meg Bowles Organic Lullaby", cookies_file="/path/yt-cookies.txt")
-print(prof.description["summary"])     # "slow, dark, sub-heavy, dynamic, textured (~67 BPM)"
+prof = profile_music("Meg Bowles Organic Lullaby", cookies_file="/path/yt-cookies.txt", music=True)
+print(prof.description["summary"])         # legacy acoustic description
+print(prof.music_description["summary"])   # music_v2 labels
 ```
 
 ## Prerequisites (runtime, not pip)
@@ -60,6 +64,18 @@ print(prof.description["summary"])     # "slow, dark, sub-heavy, dynamic, textur
   Netscape `cookies.txt`, passed via `--cookies` / `MH_COOKIES_FILE`. Never
   commit it. Cookies rotate; re-export periodically.
 
-`--rich` additionally needs numpy (`pip install music-hearing[rich]`).
+`--rich`, `--music`, and `--critic` spectral evidence need numpy
+(`pip install music-hearing[rich]`).
+
+## Music v2 guardrails
+
+- Treat `music_v2` as additive. Do not remove or reinterpret legacy `profile`
+  and `description` fields for existing callers.
+- Trust `music_v2.rhythm` over legacy `estimated_bpm` when groove matters.
+- Treat harmony key/chord hints as confidence-scored hints, not ground truth.
+- Store `music_v2.embedding` and compact JSON summaries if needed; do not store
+  fetched audio excerpts.
+- Do not add lyrics, ASR, transcription, word semantics, speaker recognition,
+  source separation, or long audio retention to this workflow.
 
 See `README.md` for the full schema, config (`MH_*` env vars), and gotchas.

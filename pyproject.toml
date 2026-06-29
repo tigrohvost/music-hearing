@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "music-hearing"
-version = "0.2.0"
-description = "Hear a track: acoustic profile + plain-language description, from a URL or search phrase. Agent-agnostic."
+version = "0.3.0"
+description = "Hear a track: acoustic profile + optional music_v2 profile, from a URL or search phrase. Agent-agnostic."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
