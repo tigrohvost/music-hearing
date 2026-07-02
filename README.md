@@ -1,3 +1,5 @@
+[![CI](https://github.com/tigrohvost/music-hearing/actions/workflows/ci.yml/badge.svg)](https://github.com/tigrohvost/music-hearing/actions/workflows/ci.yml)
+
 # music-hearing
 
 Hear a track: turn a YouTube / YouTube Music URL, an allowlisted host URL, or a
