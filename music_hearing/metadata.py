@@ -15,6 +15,26 @@ import subprocess
 from typing import Any
 
 _DESC_MAX = 600
+_TITLE_MAX = 160
+_NAME_MAX = 100
+_TAG_MAX = 40
+_TAGS_MAX = 8
+_CTRL_RE = __import__("re").compile(r"[\x00-\x08\x0b-\x1f\x7f]")
+
+
+def _clean_text(value, limit: int):
+    """Cap length and strip control characters from one untrusted field.
+
+    Title/artist/tags come from yt-dlp info JSON — arbitrary uploader-supplied
+    text that later lands inside an LLM prompt. Sanitization is defense in
+    depth against prompt-stuffing via огромные поля/управляющие символы."""
+    if value is None:
+        return None
+    text = _CTRL_RE.sub(" ", str(value))
+    text = " ".join(text.split())
+    if len(text) > limit:
+        text = text[: limit - 1].rstrip() + "…"
+    return text or None
 
 
 def _first(d: dict, *keys):
@@ -40,14 +60,14 @@ def parse_info(info: dict[str, Any]) -> dict[str, Any]:
     if len(desc) > _DESC_MAX:
         desc = desc[:_DESC_MAX - 1].rstrip() + "…"
     return {
-        "title": info.get("title"),
-        "artist": _first(info, "artist", "creator", "uploader", "channel"),
-        "album": info.get("album"),
-        "uploader": info.get("uploader"),
-        "tags": [str(t) for t in tags],
-        "categories": [str(c) for c in cats],
-        "description": desc,
-        "webpage_url": info.get("webpage_url"),
+        "title": _clean_text(info.get("title"), _TITLE_MAX),
+        "artist": _clean_text(_first(info, "artist", "creator", "uploader", "channel"), _NAME_MAX),
+        "album": _clean_text(info.get("album"), _NAME_MAX),
+        "uploader": _clean_text(info.get("uploader"), _NAME_MAX),
+        "tags": [t for t in (_clean_text(t, _TAG_MAX) for t in tags[:_TAGS_MAX]) if t],
+        "categories": [c for c in (_clean_text(c, _TAG_MAX) for c in cats[:_TAGS_MAX]) if c],
+        "description": _clean_text(desc, _DESC_MAX),
+        "webpage_url": _clean_text(info.get("webpage_url"), 300),
         "duration": info.get("duration"),
     }
 
@@ -62,7 +82,8 @@ def fetch_metadata(source: str, *, ytdlp_bin: str | None = None,
     if not exe:
         return parse_info({})
     resolved, _ = fetch.resolve_source(source, fetch._extra_hosts(extra_hosts))
-    cmd = [exe, "--no-warnings", "--no-playlist", "--skip-download", "--proxy", "",
+    cmd = [exe, "--no-warnings", "--no-playlist", "--skip-download",
+           "--proxy", fetch._env("MH_PROXY"),
            "--dump-single-json"]
     cf = fetch._cookies_file_if_present(cookies_file)
     if cf:

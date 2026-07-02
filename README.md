@@ -282,6 +282,7 @@ Every CLI flag has an `MH_*` environment fallback (the flag wins):
 | `--music` | `MH_MUSIC_V2` | include additive `music_v2`; install `[rich]` |
 | `--llm-base-url` | `MH_LLM_BASE_URL` | OpenAI-compatible base URL for `--llm` |
 | `--llm-model` | `MH_LLM_MODEL` | model id for `--llm` |
+| (no flag) | `MH_PROXY` | proxy for yt-dlp fetches; default empty = direct, bypassing an inherited `HTTPS_PROXY` |
 | (env only) | `MH_LLM_API_KEY` | bearer key for `--llm` (never a CLI flag) |
 
 A missing cookies file is ignored (the `--cookies` flag is dropped) so the

@@ -15,6 +15,8 @@ def build_parser() -> argparse.ArgumentParser:
         description="Hear a track: fetch a short excerpt and print its acoustic "
                     "profile + a plain-language description.",
     )
+    from . import __version__
+    ap.add_argument("--version", action="version", version=f"music-hearing {__version__}")
     ap.add_argument("source", help="YouTube/YouTube Music URL, an allowlisted host URL, "
                                    "or a search phrase (e.g. 'Meg Bowles Organic Lullaby')")
     ap.add_argument("--seconds", type=float, default=DEFAULT_SECONDS,

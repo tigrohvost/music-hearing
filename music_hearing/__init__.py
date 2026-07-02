@@ -14,7 +14,7 @@ from .fetch import MusicHearingProfile, profile_music, resolve_source
 from .music_v2 import build_music_v2, empty_music_v2
 from .semantics import compare, describe, describe_music_v2
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "AcousticProfile",

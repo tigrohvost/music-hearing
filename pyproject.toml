@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "music-hearing"
-version = "0.3.0"
+version = "0.4.0"
 description = "Hear a track: acoustic profile + optional music_v2 profile, from a URL or search phrase. Agent-agnostic."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -30,3 +30,6 @@ Homepage = "https://github.com/tigrohvost/music-hearing"
 
 [tool.setuptools]
 packages = ["music_hearing"]
+
+[tool.setuptools.package-data]
+music_hearing = ["py.typed"]

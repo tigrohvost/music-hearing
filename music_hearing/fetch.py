@@ -13,6 +13,7 @@ Configuration is via explicit arguments or ``MH_*`` environment variables
 """
 from __future__ import annotations
 
+import math
 import os
 import pathlib
 import re
@@ -165,16 +166,19 @@ def build_ytdlp_cmd(resolved: str, output: str, seconds: float, *, yt_dlp_bin: s
                     extractor_args: str | None = None,
                     cookies_file: str | None = None,
                     remote_components: str | None = None,
-                    write_info_json: bool = False) -> list[str]:
+                    write_info_json: bool = False,
+                    proxy: str | None = None) -> list[str]:
     """Assemble the yt-dlp argv. Defaults reproduce the mp3 excerpt pipeline;
     ``native_audio`` skips the lossy re-encode, ``cookies_*`` / ``extractor_args``
     help pass YouTube's bot gate."""
+    proxy = _env("MH_PROXY") if proxy is None else proxy
     cmd = [
         yt_dlp_bin,
         "--no-playlist", "--no-progress", "--quiet", "--no-warnings",
-        # Fetch public media directly; bypass an inherited HTTPS_PROXY that may
-        # only route an app's LLM/API traffic, not YouTube.
-        "--proxy", "",
+        # Default "" fetches public media directly, bypassing an inherited
+        # HTTPS_PROXY that may only route an app's LLM/API traffic. MH_PROXY
+        # (or the proxy argument) opts back in for region-blocked callers.
+        "--proxy", proxy,
         "--format", "bestaudio/best",
         "--download-sections", f"*0-{seconds:.3f}",
         "--force-keyframes-at-cuts",
@@ -245,7 +249,13 @@ def profile_music(source: str, seconds: float = DEFAULT_SECONDS, *,
     evidence brief + a ready prompt) so a model can name genre / similar artists
     / impression. ``llm=True`` additionally calls an OpenAI-compatible endpoint
     to fill in that verdict."""
-    bounded_seconds = max(5.0, min(float(seconds), MAX_SECONDS))
+    try:
+        seconds_f = float(seconds)
+    except (TypeError, ValueError):
+        seconds_f = DEFAULT_SECONDS
+    if not math.isfinite(seconds_f):
+        seconds_f = DEFAULT_SECONDS
+    bounded_seconds = max(5.0, min(seconds_f, MAX_SECONDS))
     resolved, extractor = resolve_source(source, _extra_hosts(extra_hosts))
     from . import music_v2 as _music_v2
     music_requested = _music_v2.requested(music) or _music_v2.env_enabled()
@@ -273,7 +283,12 @@ def profile_music(source: str, seconds: float = DEFAULT_SECONDS, *,
         description = semantics.describe(profile_dict)
         rich_data = None
         if rich or critic:
-            from . import spectral
+            try:
+                from . import spectral
+            except ImportError as exc:
+                raise RuntimeError(
+                    "--rich/--critic need numpy: pip install 'music-hearing[rich]'"
+                ) from exc
             rich_data = spectral.rich_profile(str(audio), max_seconds=bounded_seconds)
         elif music_requested:
             try:
